@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revista Rápida - PDF to WordPress</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #0f1419;
+            color: #e4e6ea;
+            min-height: 100vh;
+        }
+
+        .app-header {
+            background: linear-gradient(135deg, #1a1f2e 0%, #0f1419 100%);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 20px 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .app-header h1 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .app-header .subtitle {
+            font-size: 13px;
+            color: #8b95a5;
+            font-weight: 400;
+        }
+
+        .app-logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #1a7ab5, #2dd4bf);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            width: 350px;
+            background: #161b22;
+            border-right: 1px solid rgba(255,255,255,0.06);
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed rgba(26, 122, 181, 0.4);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(26, 122, 181, 0.05);
+        }
+
+        .upload-zone:hover {
+            border-color: #1a7ab5;
+            background: rgba(26, 122, 181, 0.1);
+        }
+
+        .upload-zone.dragover {
+            border-color: #2dd4bf;
+            background: rgba(45, 212, 191, 0.1);
+        }
+
+        .upload-zone .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .upload-zone h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        .upload-zone p {
+            font-size: 13px;
+            color: #8b95a5;
+        }
+
+        #pdf-input {
+            display: none;
+        }
+
+        /* Article List */
+        .article-list {
+            margin-top: 20px;
+        }
+
+        .article-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .article-card:hover {
+            background: rgba(26, 122, 181, 0.1);
+            border-color: rgba(26, 122, 181, 0.3);
+        }
+
+        .article-card.active {
+            background: rgba(26, 122, 181, 0.15);
+            border-color: #1a7ab5;
+        }
+
+        .article-card .thumb {
+            width: 50px;
+            height: 65px;
+            border-radius: 4px;
+            object-fit: cover;
+            background: #1a1f2e;
+        }
+
+        .article-card .info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .article-card .section-badge {
+            font-size: 10px;
+            font-weight: 600;
+            color: #2dd4bf;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .article-card .title {
+            font-size: 13px;
+            font-weight: 500;
+            color: #e4e6ea;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 3px;
+        }
+
+        .article-card .pages {
+            font-size: 11px;
+            color: #6b7785;
+            margin-top: 3px;
+        }
+
+        /* Content Area States */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            color: #6b7785;
+        }
+
+        .empty-state .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state h2 {
+            font-size: 20px;
+            color: #8b95a5;
+            margin-bottom: 8px;
+        }
+
+        /* Preview Container */
+        .preview-container {
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.3);
+        }
+
+        .preview-toolbar {
+            background: #1a1f2e;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .preview-toolbar .title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #e4e6ea;
+        }
+
+        .preview-toolbar .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #1a7ab5;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #1565a0;
+        }
+
+        .btn-success {
+            background: #059669;
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            background: #047857;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #8b95a5;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+        }
+
+        .preview-frame {
+            padding: 0;
+            min-height: 500px;
+        }
+
+        .preview-frame iframe {
+            width: 100%;
+            min-height: 600px;
+            border: none;
+        }
+
+        /* Code Panel */
+        .code-panel {
+            margin-top: 20px;
+            background: #1a1f2e;
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .code-panel.visible {
+            display: block;
+        }
+
+        /* Options Panel */
+        .options-panel {
+            display: none;
+            padding: 15px 20px;
+            background: #1e2433;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            gap: 15px;
+        }
+
+        .options-panel.visible {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .option-group label {
+            font-size: 11px;
+            color: #8b95a5;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .color-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .color-row input[type="color"] {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: none;
+        }
+
+        .hex-input {
+            width: 80px;
+            padding: 6px 8px;
+            background: #0f1419;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
+            color: #e4e6ea;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .code-panel-header {
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .code-panel-header span {
+            font-size: 13px;
+            color: #8b95a5;
+        }
+
+        .code-content {
+            padding: 20px;
+            max-height: 400px;
+            overflow: auto;
+        }
+
+        .code-content pre {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            color: #a3b8cc;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* Loading State */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 20, 25, 0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(26, 122, 181, 0.2);
+            border-top-color: #1a7ab5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #8b95a5;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 12px 20px;
+            background: #059669;
+            color: #fff;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            z-index: 2000;
+        }
+
+        .toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Progress */
+        .progress-bar {
+            width: 100%;
+            height: 3px;
+            background: rgba(26, 122, 181, 0.2);
+            border-radius: 2px;
+            margin-top: 15px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar.active {
+            display: block;
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1a7ab5, #2dd4bf);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+            animation: progress-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes progress-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="app-logo">📰</div>
+        <div>
+            <h1>Revista Rápida</h1>
+            <span class="subtitle">PDF → WordPress/Elementor HTML</span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <aside class="sidebar">
+            <div class="upload-zone" id="upload-zone">
+                <div class="icon">📄</div>
+                <h3>Subir PDF de la revista</h3>
+                <p>Arrastra aquí o haz clic para seleccionar</p>
+                <div class="progress-bar" id="upload-progress">
+                    <div class="fill" style="width: 0%"></div>
+                </div>
+            </div>
+            <input type="file" id="pdf-input" accept=".pdf">
+
+            <div class="article-list" id="article-list">
+                <!-- Articles will be listed here -->
+            </div>
+        </aside>
+
+        <main class="content-area" id="content-area">
+            <div class="empty-state" id="empty-state">
+                <div class="icon">🎨</div>
+                <h2>Sube un PDF para empezar</h2>
+                <p>Los artículos aparecerán en la barra lateral</p>
+            </div>
+
+            <div id="preview-section" style="display:none;">
+                <div class="preview-container">
+                    <div class="preview-toolbar">
+                        <span class="title" id="preview-title">Preview del artículo</span>
+                        <div class="actions">
+                            <button class="btn btn-outline" onclick="toggleCode()">
+                                &lt;/&gt; Ver código
+                            </button>
+                            <button class="btn btn-outline" onclick="toggleOptions()">
+                                🎨 Opciones
+                            </button>
+                            <button class="btn btn-success" onclick="copyCode()">
+                                📋 Copiar HTML
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel de opciones -->
+                    <div class="options-panel" id="options-panel">
+                        <div class="option-group">
+                            <label>Color principal (accent)</label>
+                            <div class="color-row">
+                                <input type="color" id="opt-accent" value="#1a7ab5">
+                                <input type="text" id="opt-accent-hex" value="#1a7ab5" class="hex-input">
+                            </div>
+                        </div>
+                        <div class="option-group">
+                            <label>Color de fondo</label>
+                            <div class="color-row">
+                                <input type="color" id="opt-bg" value="#f3f6f9">
+                                <input type="text" id="opt-bg-hex" value="#f3f6f9" class="hex-input">
+                            </div>
+                        </div>
+                        <div class="option-group">
+                            <label>
+                                <input type="checkbox" id="opt-animations" checked>
+                                Animaciones de scroll
+                            </label>
+                        </div>
+                        <div class="option-group">
+                            <label>Imágenes</label>
+                            <select id="opt-image-mode" class="hex-input" style="width:140px">
+                                <option value="base64">Embebidas (base64)</option>
+                                <option value="url">Placeholders URL</option>
+                            </select>
+                        </div>
+                        <div class="option-group">
+                            <button class="btn btn-primary" onclick="regenerateArticle()">
+                                🔄 Regenerar con estos ajustes
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="preview-frame">
+                        <iframe id="preview-iframe" sandbox="allow-scripts"></iframe>
+                    </div>
+                </div>
+
+                <div class="code-panel" id="code-panel">
+                    <div class="code-panel-header">
+                        <span>HTML/CSS Encapsulado - Listo para Elementor</span>
+                        <button class="btn btn-success" onclick="copyCode()">📋 Copiar</button>
+                    </div>
+                    <div class="code-content">
+                        <pre id="code-output"></pre>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loading-text">Procesando PDF...</div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let sessionId = null;
+        let articles = [];
+        let currentArticleIndex = null;
+        let currentHTML = '';
+
+        // Upload zone
+        const uploadZone = document.getElementById('upload-zone');
+        const pdfInput = document.getElementById('pdf-input');
+
+        uploadZone.addEventListener('click', () => pdfInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.toLowerCase().endsWith('.pdf')) {
+                uploadPDF(file);
+            }
+        });
+
+        pdfInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                uploadPDF(e.target.files[0]);
+            }
+        });
+
+        async function uploadPDF(file) {
+            showLoading('Procesando PDF... Esto puede tomar un momento');
+            
+            const formData = new FormData();
+            formData.append('pdf', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showToast(data.error, 'error');
+                    hideLoading();
+                    return;
+                }
+
+                sessionId = data.session_id;
+                articles = data.articles;
+                renderArticleList();
+                showToast(`✅ ${data.total_articles} artículos encontrados`);
+            } catch (err) {
+                showToast('Error al procesar el PDF', 'error');
+            }
+
+            hideLoading();
+        }
+
+        function renderArticleList() {
+            const list = document.getElementById('article-list');
+            list.innerHTML = articles.map((article, idx) => `
+                <div class="article-card" data-index="${idx}" onclick="selectArticle(${idx})">
+                    ${article.thumbnail ? 
+                        `<img class="thumb" src="data:image/png;base64,${article.thumbnail}" alt="Preview">` : 
+                        '<div class="thumb"></div>'
+                    }
+                    <div class="info">
+                        <div class="section-badge">${article.section || 'Artículo'}</div>
+                        <div class="title">${article.title || 'Artículo ' + (idx + 1)}</div>
+                        <div class="pages">Páginas: ${article.pages.join(', ')}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function selectArticle(index) {
+            // Marcar activo
+            document.querySelectorAll('.article-card').forEach(c => c.classList.remove('active'));
+            document.querySelector(`.article-card[data-index="${index}"]`).classList.add('active');
+
+            currentArticleIndex = index;
+            showLoading('Generando HTML del artículo...');
+
+            try {
+                const response = await fetch(`/generate/${sessionId}/${index}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ animations: true })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showToast(data.error, 'error');
+                    hideLoading();
+                    return;
+                }
+
+                currentHTML = data.html;
+                showPreview(data.html, data.article_title);
+            } catch (err) {
+                showToast('Error generando HTML', 'error');
+            }
+
+            hideLoading();
+        }
+
+        function showPreview(html, title) {
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('preview-section').style.display = 'block';
+            document.getElementById('preview-title').textContent = title;
+
+            // Extraer colores del HTML generado para actualizar los pickers
+            const bgMatch = html.match(/--xp-bg:\s*(#[0-9a-f]{6})/i);
+            const accentMatch = html.match(/--xp-accent:\s*(#[0-9a-f]{6})/i);
+            if (bgMatch) {
+                document.getElementById('opt-bg').value = bgMatch[1];
+                document.getElementById('opt-bg-hex').value = bgMatch[1];
+            }
+            if (accentMatch) {
+                document.getElementById('opt-accent').value = accentMatch[1];
+                document.getElementById('opt-accent-hex').value = accentMatch[1];
+            }
+
+            // Cargar en iframe
+            const iframe = document.getElementById('preview-iframe');
+            const previewHTML = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+                    <style>
+                        body { margin: 0; padding: 20px; font-family: 'Montserrat', sans-serif; }
+                    </style>
+                </head>
+                <body>${html}</body>
+                </html>
+            `;
+            iframe.srcdoc = previewHTML;
+
+            // Auto-resize iframe
+            iframe.onload = () => {
+                try {
+                    const height = iframe.contentDocument.body.scrollHeight;
+                    iframe.style.height = (height + 50) + 'px';
+                } catch(e) {}
+            };
+
+            // Código
+            document.getElementById('code-output').textContent = html;
+        }
+
+        function toggleCode() {
+            document.getElementById('code-panel').classList.toggle('visible');
+        }
+
+        function toggleOptions() {
+            document.getElementById('options-panel').classList.toggle('visible');
+        }
+
+        function copyCode() {
+            navigator.clipboard.writeText(currentHTML).then(() => {
+                showToast('✅ HTML copiado al portapapeles - Pégalo en Elementor');
+            });
+        }
+
+        async function regenerateArticle() {
+            if (currentArticleIndex === null) return;
+            
+            const accentColor = document.getElementById('opt-accent').value;
+            const bgColor = document.getElementById('opt-bg').value;
+            const animations = document.getElementById('opt-animations').checked;
+            const imageMode = document.getElementById('opt-image-mode').value;
+            
+            showLoading('Regenerando con nuevos estilos...');
+
+            try {
+                const response = await fetch(`/generate/${sessionId}/${currentArticleIndex}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        animations: animations,
+                        primary_color: accentColor,
+                        background_color: bgColor,
+                        image_mode: imageMode
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showToast(data.error, 'error');
+                    hideLoading();
+                    return;
+                }
+
+                currentHTML = data.html;
+                showPreview(data.html, data.article_title);
+                showToast('✅ Artículo regenerado con nuevos estilos');
+            } catch (err) {
+                showToast('Error regenerando HTML', 'error');
+            }
+
+            hideLoading();
+        }
+
+        // Sync color inputs
+        document.getElementById('opt-accent').addEventListener('input', (e) => {
+            document.getElementById('opt-accent-hex').value = e.target.value;
+        });
+        document.getElementById('opt-accent-hex').addEventListener('input', (e) => {
+            if (/^#[0-9a-f]{6}$/i.test(e.target.value)) {
+                document.getElementById('opt-accent').value = e.target.value;
+            }
+        });
+        document.getElementById('opt-bg').addEventListener('input', (e) => {
+            document.getElementById('opt-bg-hex').value = e.target.value;
+        });
+        document.getElementById('opt-bg-hex').addEventListener('input', (e) => {
+            if (/^#[0-9a-f]{6}$/i.test(e.target.value)) {
+                document.getElementById('opt-bg').value = e.target.value;
+            }
+        });
+
+        function showLoading(text) {
+            document.getElementById('loading-text').textContent = text;
+            document.getElementById('loading').classList.add('active');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('active');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.background = type === 'error' ? '#dc2626' : '#059669';
+            toast.classList.add('visible');
+            setTimeout(() => toast.classList.remove('visible'), 3000);
+        }
+    </script>
+</body>
+</html>
